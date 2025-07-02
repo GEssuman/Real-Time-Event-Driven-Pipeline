@@ -5,38 +5,48 @@ services:
       context: ./services/validation-task
     env_file:
       - .env
+    environment:
+      - S3_FILE_PATH=s3://ecommerce-raw.amalitech-gke/orders/orders_part1.csv
+      - FILE_TYPE=orders
     networks:
       - etl_network
 
 
-  pyspark-transformer-master:
+  spark-master:
+    image: bitnami/spark:latest
     container_name: spark-master
-    build: 
-      context: ./services/transformation-task
-    user: root
-    ports:
-      - "7077:7077"
-      - "8083:8080"
-    env_file:
-      - ./.env
     environment:
       - SPARK_MODE=master
-      - SPARK_LOCAL_IP=spark-master
+    ports:
+      - "7077:7077"   # Spark master RPC port
+      - "8080:8080"   # Spark master UI
     networks:
       - etl_network
-    
-  pyspark-transformer-worker:
-    build: 
-      context: ./services/transformation-task
-    env_file:
-      - .env
+
+  spark-worker:
+    image: bitnami/spark:latest
     depends_on:
-      - pyspark-transformer-master
+      - spark-master
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
     networks:
       - etl_network
+
+  spark-driver:
+    build: 
+      context: ./services/transformation-task
+    depends_on:
+      - spark-master
+      - spark-worker
+    environment:
+      - S3_FILE_PATH=s3://ecommerce-raw.amalitech-gke/orders/orders_part1.csv
+      - FILE_TYPE=orders
+    command: >
+      spark-submit --master spark://spark-master:7077 /app/transform.py
+    networks:
+      - etl_network
+
 
 networks:
   etl_network:
