@@ -1,0 +1,42 @@
+services:
+
+  validator:
+    build: 
+      context: ./services/validation-task
+    env_file:
+      - .env
+    networks:
+      - etl_network
+
+
+  pyspark-transformer-master:
+    container_name: spark-master
+    build: 
+      context: ./services/transformation-task
+    user: root
+    ports:
+      - "7077:7077"
+      - "8083:8080"
+    env_file:
+      - ./.env
+    environment:
+      - SPARK_MODE=master
+      - SPARK_LOCAL_IP=spark-master
+    networks:
+      - etl_network
+    
+  pyspark-transformer-worker:
+    build: 
+      context: ./services/transformation-task
+    env_file:
+      - .env
+    depends_on:
+      - pyspark-transformer-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    networks:
+      - etl_network
+
+networks:
+  etl_network:
