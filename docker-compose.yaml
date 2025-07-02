@@ -13,8 +13,9 @@ services:
 
 
   spark-master:
-    image: bitnami/spark:latest
+    image: bitnami/spark:3.5
     container_name: spark-master
+    user: root
     environment:
       - SPARK_MODE=master
     ports:
@@ -24,7 +25,7 @@ services:
       - etl_network
 
   spark-worker:
-    image: bitnami/spark:latest
+    image: bitnami/spark:3.5
     depends_on:
       - spark-master
     environment:
@@ -39,6 +40,10 @@ services:
     depends_on:
       - spark-master
       - spark-worker
+    volumes:
+      - ~/.aws:/root/.aws:ro
+    env_file:
+    - .env
     environment:
       - S3_FILE_PATH=s3://ecommerce-raw.amalitech-gke/orders/orders_part1.csv
       - FILE_TYPE=orders
