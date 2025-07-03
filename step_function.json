@@ -1,0 +1,111 @@
+{
+  "Comment": "Validate S3 file, fetch result, and trigger Spark transformation",
+  "StartAt": "Run Validator Task",
+  "States": {
+    "Run Validator Task": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "LaunchType": "FARGATE",
+        "Cluster": "arn:aws:ecs:eu-north-1:309797288544:cluster/descriptive-eagle-oe8xc5",
+        "TaskDefinition": "arn:aws:ecs:eu-north-1:309797288544:task-definition/etl-validation-task:1",
+        "Overrides": {
+          "ContainerOverrides": [
+            {
+              "Name": "etl-validator",
+              "Environment": [
+                {
+                  "Name": "S3_FILE_PATH",
+                  "Value": "s3://ecommerce-raw.amalitech-gke/orders/orders_part1.csv"
+                },
+                {
+                  "Name": "FILE_TYPE",
+                  "Value": "orders"
+                }
+              ]
+            }
+          ]
+        },
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-04852f4dd38926104"
+            ],
+            "AssignPublicIp": "ENABLED",
+            "SecurityGroups": [
+              "sg-04a5d550735d08aeb"
+            ]
+          }
+        }
+      },
+      "Next": "Fetch Validation Result"
+    },
+    "Fetch Validation Result": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
+      "Parameters": {
+        "Bucket": "ecommerce-validitor-checks",
+        "Key": "validation-results/orders/orders_part1_result.json"
+      },
+      "ResultSelector": {
+        "Body.$": "States.StringToJson($.Body)"
+      },
+      "ResultPath": "$.validationOutput",
+      "Next": "Check Validator Result"
+    },
+    "Check Validator Result": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.validationOutput.Body.status",
+          "StringEquals": "passed",
+          "Next": "Run Spark Transform Task"
+        }
+      ],
+      "Default": "Fail - Validation Failed"
+    },
+    "Run Spark Transform Task": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "LaunchType": "FARGATE",
+        "Cluster": "arn:aws:ecs:eu-north-1:309797288544:cluster/descriptive-eagle-oe8xc5",
+        "TaskDefinition": "arn:aws:ecs:eu-north-1:309797288544:task-definition/spark-transform-task:1",
+        "Overrides": {
+          "ContainerOverrides": [
+            {
+              "Name": "spark-tranform",
+              "Environment": [
+                {
+                  "Name": "S3_FILE_PATH",
+                  "Value": "s3://ecommerce-raw.amalitech-gke/orders/orders_part1.csv"
+                },
+                {
+                  "Name": "FILE_TYPE",
+                  "Value": "orders"
+                }
+              ]
+            }
+          ]
+        },
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-04852f4dd38926104"
+            ],
+            "AssignPublicIp": "ENABLED",
+            "SecurityGroups": [
+              "sg-04a5d550735d08aeb"
+            ]
+          }
+        }
+      },
+      "End": true
+    },
+    "Fail - Validation Failed": {
+      "Type": "Fail",
+      "Error": "ValidationFailed",
+      "Cause": "Validation task failed or schema was invalid."
+    }
+  }
+}
