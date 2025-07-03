@@ -45,8 +45,8 @@ services:
     env_file:
     - .env
     environment:
-      - S3_FILE_PATH=s3://ecommerce-raw.amalitech-gke/orders/orders_part1.csv
-      - FILE_TYPE=orders
+      - S3_FILE_PATH=s3://ecommerce-raw.amalitech-gke/order_items/order_items_part1.csv
+      - FILE_TYPE=order_items
     command: >
       spark-submit --master spark://spark-master:7077 /app/transform.py
     networks:

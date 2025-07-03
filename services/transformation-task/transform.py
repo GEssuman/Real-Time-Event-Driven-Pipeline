@@ -6,6 +6,21 @@ import logging
 
 def category_level_kpi(order_items_df, products_df):
     logging.info("Computing category-level KPIs...")
+    joined_df = order_items_df.join(
+    products_df,
+    order_items_df["product_id"] == products_df["id"],
+    how="left"
+    )
+    joined_df = joined_df.withColumn("order_date", F.to_date("created_at"))
+    kpi_df = joined_df.groupBy("category", "order_date").agg(
+        F.sum("sale_price").alias("daily_revenue"),
+        F.countDistinct("order_id").alias("num_orders"),
+        F.sum(F.when(F.col("status") == "returned", 1).otherwise(0)).alias("num_returns")
+    ).withColumn("avg_order_value", F.col("daily_revenue") / F.col("num_orders")) \
+    .withColumn("avg_return_rate", (F.col("num_returns") / F.col("num_orders")) * 100) \
+    .select("category", "order_date", "daily_revenue", "avg_order_value", "avg_return_rate")
+
+    return kpi_df
 
 def order_level_kpi(orders_df):
     logging.info("Computing order-level KPIs...")
