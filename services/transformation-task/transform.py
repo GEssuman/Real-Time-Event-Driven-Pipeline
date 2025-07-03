@@ -72,7 +72,6 @@ def write_to_dynamo(data, kpi_type):
                 item = {
                     "order_date": row["order_date"].strftime("%Y-%m-%d"),
                     "total_orders": int(row["total_orders"]),
-                    "total_revenue": Decimal(str(row["total_revenue"])),
                     "total_items_sold": int(row["total_items_sold"]),
                     "return_rate": Decimal(str(row["return_rate"])),
                     "unique_customers": int(row["unique_customers"])
@@ -102,8 +101,7 @@ def main():
         .builder \
         .appName("TransformationJob") \
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
-        .config("spark.hadoop.fs.s3a.access.key", os.getenv("AWS_ACCESS_KEY_ID")) \
-        .config("spark.hadoop.fs.s3a.secret.key", os.getenv("AWS_SECRET_ACCESS_KEY")) \
+        .config("spark.hadoop.fs.s3a.aws.credentials.provider", "com.amazonaws.auth.DefaultAWSCredentialsProviderChain")\
         .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com") \
         .config("spark.hadoop.fs.s3a.path.style.access", "true") \
         .getOrCreate()

@@ -10,3 +10,5 @@ WORKDIR /app
 
 COPY transform.py .
 
+
+CMD ["spark-submit", "--master", "local", "transform.py"]
