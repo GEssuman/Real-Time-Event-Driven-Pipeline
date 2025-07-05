@@ -8,6 +8,7 @@ services:
     environment:
       - S3_FILE_PATH=s3://ecommerce-raw.amalitech-gke/orders/orders_part1.csv
       - FILE_TYPE=orders
+      - EVENT_TIME=12345679
     networks:
       - etl_network
 
@@ -47,8 +48,9 @@ services:
     environment:
       - S3_FILE_PATH=s3://ecommerce-raw.amalitech-gke/order_items/order_items_part1.csv
       - FILE_TYPE=order_items
+      - AWS_PROFILE=default
     command: >
-      spark-submit --master spark://spark-master:7077 /app/transform.py
+      spark-submit --master spark://spark-master:7077 /opt/spark/transform.py
     networks:
       - etl_network
 
