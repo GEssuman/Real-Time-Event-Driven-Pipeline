@@ -128,6 +128,17 @@ def write_result_to_s3(result: dict, file_type: str, file_name):
     logging.info(f"Writing result to s3://{bucket}/{key}")
     s3.put_object(Bucket=bucket, Key=key, Body=json.dumps(result))
 
+def quarantine_file(file_name, file_type):
+     # Copy the object
+    s3 = boto3.client("s3")
+    s3.copy_object(
+        Bucket="ecommerce-validitor-checks",
+        CopySource={'Bucket': RAW_BUCKET, 'Key': f"{file_type}/{file_name}"},
+        Key=f"quarantine/{file_type}/{file_name}"
+    )
+
+    # Delete the original object
+    s3.delete_object(Bucket=RAW_BUCKET, Key=f"{file_type}/{file_name}")
 
 def validate_schema(df: pd.DataFrame, file_type: str):
     result = {
@@ -173,6 +184,7 @@ def validate_files_and_summarize(files: list, file_type: str):
                 passed += 1
             else:
                 failed_files.append(file)
+                quarantine_file(file, file_type)
 
         except Exception as e:
             logging.error(f"Validation failed for {file}: {e}")
