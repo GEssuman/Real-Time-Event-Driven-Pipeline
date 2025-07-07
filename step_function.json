@@ -21,6 +21,10 @@
                 {
                   "Name": "FILE_TYPE",
                   "Value": "orders"
+                },
+                {
+                  "Name": "EVENT_TIME",
+                  "Value": "12345679"
                 }
               ]
             }
@@ -45,7 +49,7 @@
       "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
       "Parameters": {
         "Bucket": "ecommerce-validitor-checks",
-        "Key": "validation-results/orders/orders_part1_result.json"
+        "Key": "validation-results/all/validation_summary_12345679.json"
       },
       "ResultSelector": {
         "Body.$": "States.StringToJson($.Body)"
@@ -57,8 +61,8 @@
       "Type": "Choice",
       "Choices": [
         {
-          "Variable": "$.validationOutput.Body.status",
-          "StringEquals": "passed",
+          "Variable": "$.validationOutput.Body.validated_status",
+          "BooleanEquals": true,
           "Next": "Run Spark Transform Task"
         }
       ],
