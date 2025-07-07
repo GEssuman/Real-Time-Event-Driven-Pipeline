@@ -32,7 +32,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.VALIDATOR_ECR_REPOSITORY }} ./services/validator-task
+          docker build -t ${{ secrets.VALIDATOR_ECR_REPOSITORY }} ./services/validation-task
 
       - name: Tag Docker image
         run: |
