@@ -5,8 +5,8 @@ on:
     branches:
       - dev
     paths:
-      - servives/validation-task/**
-      - .github/workflows/docker-ecr.yml
+      - services/validation-task/**
+      - .github/workflows/docker-ecr-validator.yaml
 
 jobs:
   build-and-push:
