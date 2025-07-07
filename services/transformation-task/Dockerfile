@@ -27,4 +27,4 @@ ENV SPARK_EXTRA_CLASSPATH=/opt/spark/jars/*
 COPY transform.py .
 
 
-CMD ["spark-submit", "--master", "local", "transform.py"]
+# CMD ["spark-submit", "--master", "local", "transform.py"]
