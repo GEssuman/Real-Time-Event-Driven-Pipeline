@@ -209,82 +209,85 @@ def main():
         # Get the timestamp from ENV or use current UTC time as fallback
     event_time_str = os.getenv("EVENT_TIME")
 
-    if event_time_str:
+    try: 
+        if event_time_str:
 
-        # Normalize the timestamp to a safe filename format
+            # Normalize the timestamp to a safe filename format
        
+            final_summary = []
 
-        final_summary = []
+            product_response = check_product_files()
+            order_response = check_order_files()
+            order_items_response = check_order_items_files()
 
-        product_response = check_product_files()
-        order_response = check_order_files()
-        order_items_response = check_order_items_files()
+            # Product Validation check
+            if product_response["validated"] and product_response["type"] == "files":
+                product_summary = validate_files_and_summarize(product_response["file"], "products")
+                final_summary.append(product_summary)
+            elif product_response["validated"] and product_response["type"] == "table":
+                final_summary.append({
+                "file_type": "table",
+                "total_files": 0,
+                "number_validated": 0,
+                "files_failed_to_validate": [],
+                "validation_success": True
+            })
+            else:
+                final_summary.append({
+                "file_type": "table",
+                "total_files": 0,
+                "number_validated": 0,
+                "files_failed_to_validate": [],
+                "validation_success": False
+            })
+                
 
-        # Product Validation check
-        if product_response["validated"] and product_response["type"] == "files":
-            product_summary = validate_files_and_summarize(product_response["file"], "products")
-            final_summary.append(product_summary)
-        elif product_response["validated"] and product_response["type"] == "table":
-            final_summary.append({
-            "file_type": "table",
-            "total_files": 0,
-            "number_validated": 0,
-            "files_failed_to_validate": [],
-            "validation_success": True
-        })
-        else:
-            final_summary.append({
-            "file_type": "table",
-            "total_files": 0,
-            "number_validated": 0,
-            "files_failed_to_validate": [],
-            "validation_success": False
-        })
+            # Order Validation check
+            if order_response["validated"]:
+                order_summary = validate_files_and_summarize(order_response["file"], "orders")
+                final_summary.append(order_summary)
+            else:
+                final_summary.append({
+                "file_type": "files",
+                "total_files": 0,
+                "number_validated": 0,
+                "files_failed_to_validate": [],
+                "validation_success": False
+            })
+
+
+            # Oder Items Validation Check
+            if order_items_response["validated"]:
+                order_items_summary = validate_files_and_summarize(order_items_response["file"], "orders_items")
+                final_summary.append(order_items_summary)
+
+            else:
+                final_summary.append({
+                "file_type": "files",
+                "total_files": 0,
+                "number_validated": 0,
+                "files_failed_to_validate": [],
+                "validation_success": False
+            })
+
+            # Write combined final summary to S3
+
+            validated_status = all(item["validation_success"] for item in final_summary)
+
+            final_result = {
+                "event_id": event_time_str,
+                "validated_status": validated_status,
+                "summary": final_summary
+            }
             
-
-        # Order Validation check
-        if order_response["validated"]:
-            order_summary = validate_files_and_summarize(order_response["file"], "orders")
-            final_summary.append(order_summary)
-        else:
-            final_summary.append({
-            "file_type": "files",
-            "total_files": 0,
-            "number_validated": 0,
-            "files_failed_to_validate": [],
-            "validation_success": False
-        })
-
-
-        # Oder Items Validation Check
-        if order_items_response["validated"]:
-            order_items_summary = validate_files_and_summarize(order_items_response["file"], "orders_items")
-            final_summary.append(order_items_summary)
+            print(json.dumps(final_result, indent=2))
+            write_result_to_s3(final_result, file_type="all", file_name=f"validation_summary_{event_time_str}")
 
         else:
-            final_summary.append({
-            "file_type": "files",
-            "total_files": 0,
-            "number_validated": 0,
-            "files_failed_to_validate": [],
-            "validation_success": False
-        })
+            logging.error("EVENT_TIME environment variable not provided. Cannot proceed.")
+            return
+    except Exception as e:
+        logging.error(f"Fatal error during validation: {e}", exc_info=True)
 
-        # Write combined final summary to S3
-
-        validated_status = all(item["validation_success"] for item in final_summary)
-
-        final_result = {
-            "event_id": event_time_str,
-            "validated_status": validated_status,
-            "summary": final_summary
-        }
-        
-        print(json.dumps(final_result, indent=2))
-        write_result_to_s3(final_result, file_type="all", file_name=f"validation_summary_{event_time_str}")
-
-    else:
-        logging.error("EVENT_TIME environment variable not provided. Cannot proceed.")
-        return
 if __name__ == "__main__":
     main()
