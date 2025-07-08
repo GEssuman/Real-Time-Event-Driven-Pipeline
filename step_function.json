@@ -24,7 +24,7 @@
                 },
                 {
                   "Name": "EVENT_TIME",
-                  "Value": "12345679"
+                  "Value.$": "States.Format('{}', $.event_time)"
                 }
               ]
             }
@@ -42,6 +42,15 @@
           }
         }
       },
+      "ResultPath": "$.validatorTask",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "Send Validator Error Notification"
+        }
+      ],
       "Next": "Fetch Validation Result"
     },
     "Fetch Validation Result": {
@@ -49,7 +58,7 @@
       "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
       "Parameters": {
         "Bucket": "ecommerce-validitor-checks",
-        "Key": "validation-results/all/validation_summary_12345679.json"
+        "Key.$": "States.Format('validation-results/all/validation_summary_{}.json', $.event_time)"
       },
       "ResultSelector": {
         "Body.$": "States.StringToJson($.Body)"
@@ -66,7 +75,7 @@
           "Next": "Run Spark Transform Task"
         }
       ],
-      "Default": "Fail - Validation Failed"
+      "Default": "Send Validation Failure Notification"
     },
     "Run Spark Transform Task": {
       "Type": "Task",
@@ -87,6 +96,10 @@
                 {
                   "Name": "FILE_TYPE",
                   "Value": "orders"
+                },
+                {
+                  "Name": "EVENT_TIME",
+                  "Value.$": "States.Format('{}', $.event_time)"
                 }
               ]
             }
@@ -104,12 +117,45 @@
           }
         }
       },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "Send Spark Failure Notification"
+        }
+      ],
       "End": true
     },
-    "Fail - Validation Failed": {
-      "Type": "Fail",
-      "Error": "ValidationFailed",
-      "Cause": "Validation task failed or schema was invalid."
+    "Send Validation Failure Notification": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:eu-north-1:309797288544:ecommerce-etl-pipeline-alerts",
+        "Message.$": "States.Format('Validation failed at event time {}. Check schema or data quality.', $.event_time)",
+        "Subject": "ETL Pipeline Alert: Validation Failed"
+      },
+      "End": true
+    },
+    "Send Validator Error Notification": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:eu-north-1:309797288544:ecommerce-etl-pipeline-alerts",
+        "Message.$": "States.Format('Validator ECS task failed unexpectedly at event time {}.', $.event_time)",
+        "Subject": "ETL Pipeline Alert: Validator Task Error"
+      },
+      "End": true
+    },
+    "Send Spark Failure Notification": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "arn:aws:sns:eu-north-1:309797288544:ecommerce-etl-pipeline-alerts",
+        "Message.$": "States.Format('Spark transformation failed for file: {} at event time {}.', $.S3_FILE_PATH, $.event_time)",
+        "Subject": "ETL Pipeline Alert: Spark Task Failed"
+      },
+      "End": true
     }
   }
 }
