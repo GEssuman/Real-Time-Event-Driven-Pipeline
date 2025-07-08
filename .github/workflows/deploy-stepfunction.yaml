@@ -6,7 +6,7 @@ on:
       - dev
       - feature/stepfunctions
     paths:
-      - "step_function/ecommerce_pipeline.asl.json
+      - step_function/ecommerce_pipeline.asl.json
 
 jobs:
   deploy:
