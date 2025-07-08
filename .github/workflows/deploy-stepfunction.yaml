@@ -7,6 +7,7 @@ on:
       - feature/stepfunctions
     paths:
       - step_function/ecommerce_pipeline.asl.json
+      - .github/workflows/deploy-stepfunction.yaml
 
 jobs:
   deploy:
