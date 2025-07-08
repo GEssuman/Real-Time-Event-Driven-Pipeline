@@ -121,3 +121,29 @@ Alerts are sent via SNS to ecommerce-etl-pipeline-alerts when:
 
 
 
+## dynamoDB Schema Design
+1. Order Level
+    - Name of the table: `ecommerce_order_kpis`
+    - Partition Key: `order_date`
+
+    -  Schemas:
+    ```
+        order_date - String
+        return rate - Decimal(2 dcp)
+        total_items_sold - Int
+        total_orders - Int 
+        total_revenue - Decimal(2 dcp)
+        unique_customers - Int
+    ```
+2. Category Level
+    - Name of the table: `ecommerce_category_kpis`
+    - Partition Key: `category`
+    - Sort Key: `order_date`
+    -  Schemas:
+    ```
+        order_date - String
+        category - String
+        avg_order_value - Decimal(2 dcp)
+        avg_return_rate - Decimal(2 dcp) 
+        daily_revenue - Decimal(2 dcp)
+    ```
