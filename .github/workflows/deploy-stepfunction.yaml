@@ -29,7 +29,7 @@ jobs:
         run: |
           STATE_MACHINE_NAME="MyStateMachine-0c176357"
           ROLE_ARN="${{ secrets.STEP_FUNCTION_ROLE_ARN }}"
-          DEFINITION_FILE="step-functions/etl_pipeline.asl.json"
+          DEFINITION_FILE="step_function/ecommerce_pipeline.asl.json"
 
           echo "Checking if state machine exists..."
           set +e
